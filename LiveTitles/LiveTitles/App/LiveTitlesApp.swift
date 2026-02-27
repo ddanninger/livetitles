@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 
 @main
 struct LiveTitlesApp: App {
@@ -9,21 +10,38 @@ struct LiveTitlesApp: App {
             MenuBarView()
                 .environmentObject(appState)
         } label: {
-            ZStack(alignment: .bottomTrailing) {
-                Image("MenuBarIcon")
-                    .renderingMode(.template)
-                if appState.isRecording {
-                    Circle()
-                        .fill(.red)
-                        .frame(width: 6, height: 6)
-                        .offset(x: 2, y: 2)
-                }
-            }
+            Image(nsImage: menuBarIcon(recording: appState.isRecording))
         }
 
         Settings {
             SettingsView()
                 .environmentObject(appState)
         }
+    }
+
+    private func menuBarIcon(recording: Bool) -> NSImage {
+        let baseImage = NSImage(named: "MenuBarIcon")!
+        let size = NSSize(width: 18, height: 18)
+
+        let composed = NSImage(size: size, flipped: false) { rect in
+            baseImage.draw(in: rect)
+
+            if recording {
+                let dotSize: CGFloat = 6
+                let dotRect = NSRect(
+                    x: rect.maxX - dotSize,
+                    y: 0,
+                    width: dotSize,
+                    height: dotSize
+                )
+                NSColor.red.setFill()
+                NSBezierPath(ovalIn: dotRect).fill()
+            }
+
+            return true
+        }
+
+        composed.isTemplate = !recording
+        return composed
     }
 }
