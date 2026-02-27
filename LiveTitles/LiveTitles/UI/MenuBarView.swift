@@ -6,11 +6,6 @@ struct MenuBarView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // Status
-            statusSection
-
-            Divider()
-
             // Start / Stop
             Button(action: { appState.toggleRecording() }) {
                 Label(
@@ -64,45 +59,4 @@ struct MenuBarView: View {
         .frame(width: 220)
     }
 
-    @ViewBuilder
-    private var statusSection: some View {
-        HStack(spacing: 6) {
-            Circle()
-                .fill(statusColor)
-                .frame(width: 8, height: 8)
-            Text(statusText)
-                .font(.caption)
-                .foregroundColor(.secondary)
-            Spacer()
-        }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 4)
-    }
-
-    private var statusColor: Color {
-        switch appState.connectionState {
-        case .connected:
-            return .red
-        case .connecting, .reconnecting:
-            return .orange
-        case .disconnected:
-            return .gray
-        }
-    }
-
-    private var statusText: String {
-        if !appState.isRecording {
-            return "Idle"
-        }
-        switch appState.connectionState {
-        case .connected:
-            return "Recording"
-        case .connecting:
-            return "Connecting..."
-        case .reconnecting:
-            return "Reconnecting..."
-        case .disconnected:
-            return "Starting..."
-        }
-    }
 }
