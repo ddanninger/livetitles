@@ -1,0 +1,130 @@
+name: Build & Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build-and-release:
+    runs-on: macos-15
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        run: cd LiveTitles && xcodegen generate
+
+      - name: Import signing certificate
+        env:
+          CERTIFICATE_BASE64: ${{ secrets.CERTIFICATE_BASE64 }}
+          CERTIFICATE_PASSWORD: ${{ secrets.CERTIFICATE_PASSWORD }}
+        run: |
+          CERT_PATH=$RUNNER_TEMP/certificate.p12
+          KEYCHAIN_PATH=$RUNNER_TEMP/build.keychain-db
+          KEYCHAIN_PASSWORD=$(openssl rand -base64 24)
+
+          echo -n "$CERTIFICATE_BASE64" | base64 --decode -o "$CERT_PATH"
+
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+
+          security import "$CERT_PATH" \
+            -P "$CERTIFICATE_PASSWORD" \
+            -A \
+            -t cert \
+            -f pkcs12 \
+            -k "$KEYCHAIN_PATH"
+
+          security set-key-partition-list -S apple-tool:,apple: \
+            -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+
+          security list-keychains -d user -s "$KEYCHAIN_PATH" login.keychain-db
+
+      - name: Build archive
+        env:
+          DEVELOPER_TEAM_ID: ${{ secrets.DEVELOPER_TEAM_ID }}
+        run: |
+          xcodebuild archive \
+            -project LiveTitles/LiveTitles.xcodeproj \
+            -scheme LiveTitles \
+            -configuration Release \
+            -archivePath $RUNNER_TEMP/LiveTitles.xcarchive \
+            CODE_SIGN_IDENTITY="Developer ID Application" \
+            DEVELOPMENT_TEAM="$DEVELOPER_TEAM_ID" \
+            CODE_SIGN_STYLE=Manual \
+            OTHER_CODE_SIGN_FLAGS="--keychain $RUNNER_TEMP/build.keychain-db"
+
+      - name: Export archive
+        env:
+          DEVELOPER_TEAM_ID: ${{ secrets.DEVELOPER_TEAM_ID }}
+        run: |
+          cat > $RUNNER_TEMP/ExportOptions.plist <<EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key>
+            <string>developer-id</string>
+            <key>teamID</key>
+            <string>${DEVELOPER_TEAM_ID}</string>
+            <key>signingStyle</key>
+            <string>manual</string>
+            <key>signingCertificate</key>
+            <string>Developer ID Application</string>
+          </dict>
+          </plist>
+          EOF
+
+          xcodebuild -exportArchive \
+            -archivePath $RUNNER_TEMP/LiveTitles.xcarchive \
+            -exportOptionsPlist $RUNNER_TEMP/ExportOptions.plist \
+            -exportPath $RUNNER_TEMP/export
+
+      - name: Notarize app
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_ID_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
+          DEVELOPER_TEAM_ID: ${{ secrets.DEVELOPER_TEAM_ID }}
+        run: |
+          ditto -c -k --keepParent \
+            "$RUNNER_TEMP/export/LiveTitles.app" \
+            "$RUNNER_TEMP/LiveTitles-notarize.zip"
+
+          xcrun notarytool submit \
+            "$RUNNER_TEMP/LiveTitles-notarize.zip" \
+            --apple-id "$APPLE_ID" \
+            --password "$APPLE_ID_PASSWORD" \
+            --team-id "$DEVELOPER_TEAM_ID" \
+            --wait
+
+          xcrun stapler staple "$RUNNER_TEMP/export/LiveTitles.app"
+
+      - name: Create DMG
+        run: |
+          TAG=${GITHUB_REF_NAME}
+          hdiutil create \
+            -volname "LiveTitles" \
+            -srcfolder "$RUNNER_TEMP/export/LiveTitles.app" \
+            -ov -format UDZO \
+            "$RUNNER_TEMP/LiveTitles-${TAG}.dmg"
+
+      - name: Upload DMG to GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG=${GITHUB_REF_NAME}
+          gh release upload "$TAG" \
+            "$RUNNER_TEMP/LiveTitles-${TAG}.dmg" \
+            --clobber
+
+      - name: Cleanup keychain
+        if: always()
+        run: security delete-keychain $RUNNER_TEMP/build.keychain-db 2>/dev/null || true
