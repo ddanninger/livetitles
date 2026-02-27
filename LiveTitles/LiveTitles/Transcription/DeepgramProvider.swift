@@ -7,7 +7,6 @@ final class DeepgramProvider: TranscriptionProvider {
 
     private let apiKey: String
     private let language: String
-    private let detectLanguages: [String]
     private var webSocketTask: URLSessionWebSocketTask?
     private var urlSession: URLSession?
     private var isConnected = false
@@ -15,37 +14,26 @@ final class DeepgramProvider: TranscriptionProvider {
     private let maxReconnectAttempts = 5
     private var keepAliveTimer: Timer?
 
-    /// - Parameters:
-    ///   - language: Primary language code for Deepgram (e.g. "en", "multi")
-    ///   - detectLanguages: When set, restricts language detection to these codes (e.g. ["en", "ko"])
-    init(apiKey: String, language: String = "multi", detectLanguages: [String] = []) {
+    init(apiKey: String, language: String = "multi") {
         self.apiKey = apiKey
         self.language = language
-        self.detectLanguages = detectLanguages
     }
 
     func connect() async throws {
         onConnectionStateChange?(.connecting)
 
-        var params = [
+        let urlString = [
+            "wss://api.deepgram.com/v1/listen?",
             "model=nova-3",
-            "diarize=true",
-            "interim_results=true",
-            "punctuate=true",
-            "smart_format=true",
-            "encoding=linear16",
-            "sample_rate=16000",
-            "channels=1",
-        ]
-        if !detectLanguages.isEmpty {
-            // Restrict detection to specific languages (e.g. detect_language=en&detect_language=ko)
-            for lang in detectLanguages {
-                params.append("detect_language=\(lang)")
-            }
-        } else {
-            params.append("language=\(language)")
-        }
-        let urlString = "wss://api.deepgram.com/v1/listen?" + params.joined(separator: "&")
+            "&language=\(language)",
+            "&diarize=true",
+            "&interim_results=true",
+            "&punctuate=true",
+            "&smart_format=true",
+            "&encoding=linear16",
+            "&sample_rate=16000",
+            "&channels=1",
+        ].joined()
 
         guard let url = URL(string: urlString) else {
             throw DeepgramError.invalidURL
