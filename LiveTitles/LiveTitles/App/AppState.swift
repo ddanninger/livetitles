@@ -93,15 +93,17 @@ final class AppState: ObservableObject {
             audioRecordingURL = dir.appendingPathComponent(filename)
         }
 
-        // Use multilingual mode when simultaneous translation is enabled
+        // Use restricted language detection when simultaneous translation is enabled
         let simultaneousTranslation = UserDefaults.standard.bool(forKey: "simultaneousTranslation")
-        let deepgramLang: String
+        let provider: DeepgramProvider
         if simultaneousTranslation && speechLang != "multi" && !translationLang.isEmpty {
-            deepgramLang = "multi"
+            provider = DeepgramProvider(
+                apiKey: deepgramKey,
+                detectLanguages: [speechLang, translationLang]
+            )
         } else {
-            deepgramLang = speechLang
+            provider = DeepgramProvider(apiKey: deepgramKey, language: speechLang)
         }
-        let provider = DeepgramProvider(apiKey: deepgramKey, language: deepgramLang)
         transcriptionSession = TranscriptionSession(
             provider: provider,
             appState: self

@@ -7,6 +7,7 @@ final class DeepgramProvider: TranscriptionProvider {
 
     private let apiKey: String
     private let language: String
+    private let detectLanguages: [String]
     private var webSocketTask: URLSessionWebSocketTask?
     private var urlSession: URLSession?
     private var isConnected = false
@@ -14,9 +15,13 @@ final class DeepgramProvider: TranscriptionProvider {
     private let maxReconnectAttempts = 5
     private var keepAliveTimer: Timer?
 
-    init(apiKey: String, language: String = "multi") {
+    /// - Parameters:
+    ///   - language: Primary language code for Deepgram (e.g. "en", "multi")
+    ///   - detectLanguages: When set, restricts language detection to these codes (e.g. ["en", "ko"])
+    init(apiKey: String, language: String = "multi", detectLanguages: [String] = []) {
         self.apiKey = apiKey
         self.language = language
+        self.detectLanguages = detectLanguages
     }
 
     func connect() async throws {
@@ -24,7 +29,6 @@ final class DeepgramProvider: TranscriptionProvider {
 
         var params = [
             "model=nova-3",
-            "language=\(language)",
             "diarize=true",
             "interim_results=true",
             "punctuate=true",
@@ -33,11 +37,13 @@ final class DeepgramProvider: TranscriptionProvider {
             "sample_rate=16000",
             "channels=1",
         ]
-        if language == "multi" {
-            // Deepgram recommends 100ms endpointing for code-switching
-            params.append("endpointing=100")
+        if !detectLanguages.isEmpty {
+            // Restrict detection to specific languages (e.g. detect_language=en&detect_language=ko)
+            for lang in detectLanguages {
+                params.append("detect_language=\(lang)")
+            }
         } else {
-            params.append("detect_language=true")
+            params.append("language=\(language)")
         }
         let urlString = "wss://api.deepgram.com/v1/listen?" + params.joined(separator: "&")
 
