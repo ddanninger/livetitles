@@ -75,24 +75,6 @@ The app will request:
 - **Microphone access** — for capturing speech
 - **Screen recording** — for system audio capture (optional)
 
-## Project Structure
-
-```
-LiveTitles/
-├── App/                 # Entry point, global state
-├── Audio/               # Mic + system audio capture
-├── Transcription/       # Deepgram WebSocket integration
-├── Speakers/            # Speaker tracking & color assignment
-├── Translation/         # Claude translation pipeline
-├── NameExtraction/      # Speaker name detection
-├── Overlay/             # NSPanel floating subtitle window
-├── UI/                  # Menu bar & settings views
-├── Settings/            # Keychain-based settings manager
-├── Models/              # Data models
-├── Networking/          # WebSocket & HTTP clients
-└── Utilities/           # Constants, logging
-```
-
 ## Tech Stack
 
 | Component | Technology |
