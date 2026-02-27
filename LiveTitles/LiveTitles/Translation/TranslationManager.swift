@@ -7,6 +7,7 @@ final class TranslationManager {
     private let cache = TranslationCache()
     private var sourceLanguage: String = "en"
     private var targetLanguage: String = ""
+    private var tone: String = "casual"
     private var activeTasks: [UUID: Task<Void, Never>] = [:]
 
     /// Called when a translation is ready for a specific subtitle line
@@ -16,7 +17,7 @@ final class TranslationManager {
         provider != nil && !targetLanguage.isEmpty
     }
 
-    func configure(apiKey: String, sourceLanguage: String, targetLanguage: String) {
+    func configure(apiKey: String, sourceLanguage: String, targetLanguage: String, tone: String = "casual") {
         guard !apiKey.isEmpty, !targetLanguage.isEmpty else {
             provider = nil
             return
@@ -24,21 +25,50 @@ final class TranslationManager {
 
         self.sourceLanguage = sourceLanguage
         self.targetLanguage = targetLanguage
+        self.tone = tone
         self.provider = ClaudeTranslationProvider(apiKey: apiKey)
     }
 
-    /// Translate a specific subtitle line's text
-    func translate(lineID: UUID, text: String) {
+    /// Translate a specific subtitle line's text.
+    /// When detectedLanguage is provided, translates bidirectionally:
+    /// if detected matches source → translate to target; if detected matches target → translate to source.
+    func translate(lineID: UUID, text: String, detectedLanguage: String? = nil) {
         guard isConfigured, !text.isEmpty else { return }
+
+        // Determine translation direction
+        let (from, to) = resolveDirection(detectedLanguage: detectedLanguage)
+
+        // Don't translate if detected language matches the target (already in the right language)
+        // This shouldn't happen with proper direction resolution, but guard anyway
+        guard from != to else { return }
 
         // Cancel any existing task for this line (e.g. if text was updated)
         activeTasks[lineID]?.cancel()
 
         activeTasks[lineID] = Task { [weak self] in
             guard let self else { return }
-            await self.performTranslation(lineID: lineID, text: text)
+            await self.performTranslation(lineID: lineID, text: text, from: from, to: to)
             self.activeTasks.removeValue(forKey: lineID)
         }
+    }
+
+    /// Resolves which direction to translate based on detected language.
+    private func resolveDirection(detectedLanguage: String?) -> (from: String, to: String) {
+        guard let detected = detectedLanguage else {
+            return (sourceLanguage, targetLanguage)
+        }
+
+        // Normalize: "en-US" → "en"
+        let detectedBase = String(detected.prefix(2))
+        let sourceBase = String(sourceLanguage.prefix(2))
+        let targetBase = String(targetLanguage.prefix(2))
+
+        if detectedBase == targetBase {
+            // Speaking the translation language → translate back to source
+            return (targetLanguage, sourceLanguage)
+        }
+        // Default: speaking source language → translate to target
+        return (sourceLanguage, targetLanguage)
     }
 
     func stop() {
@@ -46,9 +76,9 @@ final class TranslationManager {
         activeTasks.removeAll()
     }
 
-    private func performTranslation(lineID: UUID, text: String) async {
+    private func performTranslation(lineID: UUID, text: String, from: String, to: String) async {
         // Check cache first
-        if let cached = cache.get(text: text, targetLanguage: targetLanguage) {
+        if let cached = cache.get(text: text, targetLanguage: to) {
             onTranslation?(lineID, cached)
             return
         }
@@ -58,13 +88,14 @@ final class TranslationManager {
         do {
             let translation = try await provider.translate(
                 text: text,
-                from: sourceLanguage,
-                to: targetLanguage
+                from: from,
+                to: to,
+                tone: tone
             )
 
             guard !Task.isCancelled else { return }
 
-            cache.set(text: text, targetLanguage: targetLanguage, translation: translation)
+            cache.set(text: text, targetLanguage: to, translation: translation)
             onTranslation?(lineID, translation)
         } catch {
             print("Translation failed for line \(lineID): \(error)")

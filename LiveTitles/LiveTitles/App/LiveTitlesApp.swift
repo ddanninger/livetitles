@@ -9,7 +9,8 @@ struct LiveTitlesApp: App {
             MenuBarView()
                 .environmentObject(appState)
         } label: {
-            Label("LiveTitles", systemImage: appState.isRecording ? "captions.bubble.fill" : "captions.bubble")
+            Image("MenuBarIcon")
+                .renderingMode(.template)
         }
 
         Settings {

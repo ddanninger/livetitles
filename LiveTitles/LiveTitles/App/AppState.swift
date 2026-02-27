@@ -15,6 +15,10 @@ final class AppState: ObservableObject {
     @Published var hasValidAPIKeys = false
     @Published var showingAPIKeySetup = false
 
+    // MARK: - Transcript History
+    private var transcriptLines: [SubtitleLine] = []
+    private var recordingStartTime: Date?
+
     // MARK: - Managers
     let overlayManager = SubtitleOverlayManager()
     private var audioCaptureManager: AudioCaptureManager?
@@ -50,21 +54,26 @@ final class AppState: ObservableObject {
             return
         }
 
-        // Reset speakers for new session
+        // Reset speakers and transcript for new session
         SpeakerManager.shared.reset()
         subtitleLines = []
+        transcriptLines = []
+        recordingStartTime = Date()
 
         let anthropicKey = SettingsManager.shared.anthropicAPIKey
 
-        let speechLang = UserDefaults.standard.string(forKey: "speechLanguage") ?? "en"
+        let speechLang = UserDefaults.standard.string(forKey: "speechLanguage") ?? "multi"
         let translationLang = UserDefaults.standard.string(forKey: "translationLanguage") ?? ""
+
+        let tone = UserDefaults.standard.string(forKey: "translationTone") ?? "casual"
 
         // Always configure translation if keys + language exist — toggle controls display
         if !anthropicKey.isEmpty && !translationLang.isEmpty {
             translationManager.configure(
                 apiKey: anthropicKey,
                 sourceLanguage: speechLang,
-                targetLanguage: translationLang
+                targetLanguage: translationLang,
+                tone: tone
             )
             print("[LiveTitles] Translation configured: \(speechLang) → \(translationLang)")
         } else {
@@ -74,15 +83,32 @@ final class AppState: ObservableObject {
         // Set up audio capture
         audioCaptureManager = AudioCaptureManager()
 
-        // Set up transcription
-        let provider = DeepgramProvider(apiKey: deepgramKey)
+        // Determine audio recording file if enabled
+        var audioRecordingURL: URL?
+        if UserDefaults.standard.bool(forKey: "saveAudioRecording") {
+            let dir = saveDirectoryURL()
+            let fileFormatter = DateFormatter()
+            fileFormatter.dateFormat = "yyyy-MM-dd_HHmmss"
+            let filename = "LiveTitles_\(fileFormatter.string(from: recordingStartTime ?? Date())).caf"
+            audioRecordingURL = dir.appendingPathComponent(filename)
+        }
+
+        // Use multilingual mode when simultaneous translation is enabled
+        let simultaneousTranslation = UserDefaults.standard.bool(forKey: "simultaneousTranslation")
+        let deepgramLang: String
+        if simultaneousTranslation && speechLang != "multi" && !translationLang.isEmpty {
+            deepgramLang = "multi"
+        } else {
+            deepgramLang = speechLang
+        }
+        let provider = DeepgramProvider(apiKey: deepgramKey, language: deepgramLang)
         transcriptionSession = TranscriptionSession(
             provider: provider,
             appState: self
         )
 
         do {
-            try audioCaptureManager?.startCapture { [weak self] audioData in
+            try audioCaptureManager?.startCapture(recordToFile: audioRecordingURL) { [weak self] audioData in
                 self?.transcriptionSession?.sendAudio(audioData)
             }
             transcriptionSession?.start()
@@ -103,6 +129,11 @@ final class AppState: ObservableObject {
         transcriptionSession?.stop()
         translationManager.stop()
         stopFadeOutTimer()
+
+        // Save transcript if enabled
+        if UserDefaults.standard.bool(forKey: "saveTranscript") && !transcriptLines.isEmpty {
+            saveTranscript()
+        }
 
         audioCaptureManager = nil
         transcriptionSession = nil
@@ -141,10 +172,17 @@ final class AppState: ObservableObject {
             // Append final lines, keeping only recent ones
             subtitleLines = (subtitleLines.filter(\.isFinal) + lines).suffix(keepCount * 2).map { $0 }
 
+            // Accumulate for transcript save
+            transcriptLines.append(contentsOf: lines)
+
             // Translate each final line if translation is enabled
             if isTranslationEnabled && translationManager.isConfigured {
                 for line in lines {
-                    translationManager.translate(lineID: line.id, text: line.text)
+                    translationManager.translate(
+                        lineID: line.id,
+                        text: line.text,
+                        detectedLanguage: result.detectedLanguage
+                    )
                 }
             }
         } else {
@@ -159,6 +197,61 @@ final class AppState: ObservableObject {
     }
 
     // MARK: - Private
+
+    private func saveDirectoryURL() -> URL {
+        let customPath = UserDefaults.standard.string(forKey: "saveLocationPath") ?? ""
+        if !customPath.isEmpty {
+            // Try to resolve security-scoped bookmark
+            if let bookmarkData = UserDefaults.standard.data(forKey: "saveLocationBookmark") {
+                var isStale = false
+                if let url = try? URL(
+                    resolvingBookmarkData: bookmarkData,
+                    options: .withSecurityScope,
+                    relativeTo: nil,
+                    bookmarkDataIsStale: &isStale
+                ) {
+                    _ = url.startAccessingSecurityScopedResource()
+                    return url
+                }
+            }
+            return URL(fileURLWithPath: customPath)
+        }
+        return FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
+    }
+
+    private func saveTranscript() {
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyy-MM-dd HH:mm"
+        let startStr = dateFormatter.string(from: recordingStartTime ?? Date())
+        let endStr = dateFormatter.string(from: Date())
+
+        var md = "# LiveTitles Transcript\n\n"
+        md += "**Date:** \(startStr) — \(endStr)\n\n"
+        md += "---\n\n"
+
+        for line in transcriptLines {
+            md += "**\(line.speaker.displayName):** \(line.text)\n"
+            if let translation = line.translation {
+                md += "*\(translation)*\n"
+            }
+            md += "\n"
+        }
+
+        let fileFormatter = DateFormatter()
+        fileFormatter.dateFormat = "yyyy-MM-dd_HHmmss"
+        let filename = "LiveTitles_\(fileFormatter.string(from: recordingStartTime ?? Date())).md"
+
+        let dir = saveDirectoryURL()
+        let fileURL = dir.appendingPathComponent(filename)
+
+        do {
+            try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+            try md.write(to: fileURL, atomically: true, encoding: .utf8)
+            print("[LiveTitles] Transcript saved to \(fileURL.path)")
+        } catch {
+            print("[LiveTitles] Failed to save transcript: \(error)")
+        }
+    }
 
     private func checkAPIKeys() {
         hasValidAPIKeys = !SettingsManager.shared.deepgramAPIKey.isEmpty
@@ -203,6 +296,19 @@ final class AppState: ObservableObject {
                     isFinal: existing.isFinal
                 )
                 print("[LiveTitles] Translation added: \(existing.text) → \(translation)")
+            }
+            // Also update transcript history
+            if let index = self.transcriptLines.firstIndex(where: { $0.id == lineID }) {
+                let existing = self.transcriptLines[index]
+                self.transcriptLines[index] = SubtitleLine(
+                    id: existing.id,
+                    speaker: existing.speaker,
+                    text: existing.text,
+                    translation: translation,
+                    timestamp: existing.timestamp,
+                    isFinal: existing.isFinal,
+                    createdAt: existing.createdAt
+                )
             }
         }
     }

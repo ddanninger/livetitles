@@ -6,6 +6,7 @@ final class DeepgramProvider: TranscriptionProvider {
     var onConnectionStateChange: ((ConnectionState) -> Void)?
 
     private let apiKey: String
+    private let language: String
     private var webSocketTask: URLSessionWebSocketTask?
     private var urlSession: URLSession?
     private var isConnected = false
@@ -13,8 +14,9 @@ final class DeepgramProvider: TranscriptionProvider {
     private let maxReconnectAttempts = 5
     private var keepAliveTimer: Timer?
 
-    init(apiKey: String) {
+    init(apiKey: String, language: String = "multi") {
         self.apiKey = apiKey
+        self.language = language
     }
 
     func connect() async throws {
@@ -23,6 +25,7 @@ final class DeepgramProvider: TranscriptionProvider {
         let urlString = [
             "wss://api.deepgram.com/v1/listen?",
             "model=nova-3",
+            "&language=\(language)",
             "&diarize=true",
             "&interim_results=true",
             "&punctuate=true",
@@ -116,6 +119,8 @@ final class DeepgramProvider: TranscriptionProvider {
 
         let isFinal = json["is_final"] as? Bool ?? false
         let channelIndex = (json["channel_index"] as? [Int])?.first ?? 0
+        let detectedLanguage = firstAlt["detected_language"] as? String
+            ?? channel["detected_language"] as? String
 
         let words = wordsArray.compactMap { wordDict -> TranscribedWord? in
             guard let word = wordDict["word"] as? String,
@@ -141,7 +146,8 @@ final class DeepgramProvider: TranscriptionProvider {
         let result = TranscriptionResult(
             words: words,
             isFinal: isFinal,
-            channel: channelIndex
+            channel: channelIndex,
+            detectedLanguage: detectedLanguage
         )
 
         DispatchQueue.main.async { [weak self] in

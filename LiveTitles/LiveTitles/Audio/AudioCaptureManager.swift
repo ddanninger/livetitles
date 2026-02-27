@@ -10,12 +10,29 @@ final class AudioCaptureManager {
     private let targetSampleRate: Double = 16000
     private let targetChannels: AVAudioChannelCount = 1
 
-    func startCapture(onAudioData: @escaping (Data) -> Void) throws {
+    // Audio recording
+    private var audioFile: AVAudioFile?
+    private(set) var recordingURL: URL?
+
+    func startCapture(recordToFile: URL? = nil, onAudioData: @escaping (Data) -> Void) throws {
         self.onAudioData = onAudioData
 
         let engine = AVAudioEngine()
         let inputNode = engine.inputNode
         let inputFormat = inputNode.outputFormat(forBus: 0)
+
+        // Set up file recording if requested
+        if let fileURL = recordToFile {
+            let recordFormat = AVAudioFormat(
+                commonFormat: .pcmFormatFloat32,
+                sampleRate: inputFormat.sampleRate,
+                channels: 1,
+                interleaved: false
+            )!
+            audioFile = try AVAudioFile(forWriting: fileURL, settings: recordFormat.settings)
+            recordingURL = fileURL
+            print("[LiveTitles] Audio recording to \(fileURL.path)")
+        }
 
         // Use the native input format for the tap, then convert on a separate queue
         let bufferSize: AVAudioFrameCount = 8192
@@ -35,6 +52,14 @@ final class AudioCaptureManager {
 
         inputNode.installTap(onBus: 0, bufferSize: bufferSize, format: inputFormat) { [weak self] buffer, _ in
             guard let self else { return }
+
+            // Write to file on processing queue
+            if self.audioFile != nil {
+                self.processingQueue.async {
+                    self.writeToFile(buffer)
+                }
+            }
+
             // Move heavy conversion off the audio render thread
             self.processingQueue.async {
                 self.processAudioBuffer(buffer, converter: converter, targetFormat: targetFormat)
@@ -52,6 +77,21 @@ final class AudioCaptureManager {
         audioEngine?.stop()
         audioEngine = nil
         onAudioData = nil
+        audioFile = nil
+        if let url = recordingURL {
+            print("[LiveTitles] Audio recording saved to \(url.path)")
+        }
+    }
+
+    private func writeToFile(_ buffer: AVAudioPCMBuffer) {
+        guard let file = audioFile else { return }
+        do {
+            try file.write(from: buffer)
+        } catch {
+            if arc4random_uniform(100) == 0 {
+                print("[LiveTitles] Audio file write error: \(error)")
+            }
+        }
     }
 
     private func processAudioBuffer(

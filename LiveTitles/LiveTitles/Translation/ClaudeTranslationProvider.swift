@@ -12,9 +12,10 @@ final class ClaudeTranslationProvider: TranslationProvider {
     func translate(
         text: String,
         from sourceLanguage: String,
-        to targetLanguage: String
+        to targetLanguage: String,
+        tone: String = "casual"
     ) async throws -> String {
-        let body = buildRequestBody(text: text, from: sourceLanguage, to: targetLanguage, stream: false)
+        let body = buildRequestBody(text: text, from: sourceLanguage, to: targetLanguage, tone: tone, stream: false)
         let request = try buildRequest(body: body, stream: false)
 
         let (data, response) = try await URLSession.shared.data(for: request)
@@ -39,9 +40,10 @@ final class ClaudeTranslationProvider: TranslationProvider {
         text: String,
         from sourceLanguage: String,
         to targetLanguage: String,
+        tone: String = "casual",
         onToken: @escaping (String) -> Void
     ) async throws {
-        let body = buildRequestBody(text: text, from: sourceLanguage, to: targetLanguage, stream: true)
+        let body = buildRequestBody(text: text, from: sourceLanguage, to: targetLanguage, tone: tone, stream: true)
         let request = try buildRequest(body: body, stream: true)
 
         let (bytes, response) = try await URLSession.shared.bytes(for: request)
@@ -91,16 +93,40 @@ final class ClaudeTranslationProvider: TranslationProvider {
         text: String,
         from sourceLanguage: String,
         to targetLanguage: String,
+        tone: String,
         stream: Bool
     ) -> [String: Any] {
+        let toneInstruction: String
+        switch tone {
+        case "professional":
+            toneInstruction = """
+                Use formal, professional language. In languages with honorific systems \
+                (Korean, Japanese, etc.), use polite/formal speech levels (e.g. \
+                Korean: 합쇼체/하십시오체, Japanese: です/ます form). Use formal pronouns \
+                where applicable (e.g. German: Sie, French: vous, Spanish: usted).
+                """
+        case "academic":
+            toneInstruction = """
+                Use academic, scholarly language. Prefer precise terminology and formal \
+                sentence structures. In languages with honorific systems, use the highest \
+                appropriate formality level.
+                """
+        default:
+            toneInstruction = """
+                Use casual, conversational language. In languages with honorific systems \
+                (Korean, Japanese, etc.), use informal/casual speech levels (e.g. \
+                Korean: 해체/반말, Japanese: plain form). Use informal pronouns where \
+                applicable (e.g. German: du, French: tu, Spanish: tú).
+                """
+        }
+
         var body: [String: Any] = [
             "model": model,
             "max_tokens": 512,
             "system": """
                 You are a real-time subtitle translator. Translate the following spoken text \
                 from \(sourceLanguage) to \(targetLanguage). Output ONLY the translation, \
-                nothing else. Preserve the tone and style of spoken language. \
-                Keep it natural and conversational.
+                nothing else. \(toneInstruction)
                 """,
             "messages": [
                 ["role": "user", "content": text]

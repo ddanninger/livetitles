@@ -76,8 +76,7 @@ struct MenuBarView: View {
             Spacer()
         }
         .padding(.horizontal, 12)
-        .padding(.top, 8)
-        .padding(.bottom, 4)
+        .padding(.vertical, 4)
     }
 
     private var statusColor: Color {

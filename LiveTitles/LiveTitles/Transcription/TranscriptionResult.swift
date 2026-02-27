@@ -4,6 +4,7 @@ struct TranscriptionResult {
     let words: [TranscribedWord]
     let isFinal: Bool
     let channel: Int
+    let detectedLanguage: String?
 
     var text: String {
         words.map(\.text).joined(separator: " ")

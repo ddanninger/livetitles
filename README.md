@@ -10,23 +10,30 @@ A native macOS menu bar app that displays real-time, movie-style subtitles for a
 
 - **Live Speech-to-Text** — Real-time transcription powered by Deepgram Nova-3 with sub-300ms latency
 - **Multi-Speaker Detection** — Each speaker gets a unique color label with automatic diarization
-- **Live Translation** — Translate conversations in real-time into 10+ languages using Claude 3.5 Sonnet
+- **Live Translation** — Translate conversations in real-time into 15+ languages using Claude 3.5 Sonnet
+- **Simultaneous Translation** — Bidirectional mode: speak in either language and get translations to the other automatically
+- **Translation Tone** — Choose casual, professional, or academic tone for proper honorifics (Korean, Japanese, etc.)
+- **Multilingual Auto-Detect** — Let Deepgram detect the spoken language automatically
 - **Floating Subtitle Overlay** — Cinema-style subtitles that float above all windows, click-through and always visible
 - **Menu Bar Only** — No dock icon, no app window — just floating subtitles and menu bar controls
-- **Configurable** — Adjust subtitle position, font size, opacity, and colors
+- **Save Transcripts** — Export conversations as Markdown files with speaker labels and translations
+- **Audio Recording** — Optionally save the full audio alongside the transcript
+- **Configurable** — Adjust subtitle position, font size, opacity, save location, and more
 
 ## How It Works
 
 ```
 Microphone / System Audio
         ↓
-  Deepgram Nova-3 (WebSocket) → Real-time transcription + speaker labels
+  Deepgram Nova-3 (WebSocket) → Real-time transcription + speaker labels + language detection
         ↓
   Speaker Manager → Color assignment + name extraction
         ↓
-  Claude Translation (optional) → Live translated text
+  Claude Translation (optional) → Bidirectional translated text with tone/honorific control
         ↓
   Floating Overlay → Cinema-style subtitles on screen
+        ↓
+  Save to Disk (optional) → Markdown transcript + audio recording
 ```
 
 ## Prerequisites
@@ -55,6 +62,18 @@ open LiveTitles.xcodeproj
 Build and run with **⌘R** in Xcode.
 
 On first launch, enter your API keys via the menu bar → **Settings**.
+
+### Configuration
+
+In **Settings → General**:
+
+- **Speech Language** — Pick a specific language or "Multilingual (Auto-detect)"
+- **Translate To** — Choose a target language (or "Off")
+- **Simultaneous Translation** — Enable to translate both directions (e.g. English ↔ Korean)
+- **Tone** — Casual, Professional, or Academic (controls honorifics in Korean, Japanese, etc.)
+- **Save Transcript** — Auto-save a Markdown file when recording stops
+- **Save Audio Recording** — Save the full audio as a `.caf` file
+- **Save Location** — Choose where transcripts and recordings are saved
 
 ### Permissions
 
@@ -99,6 +118,17 @@ LiveTitles uses a **bring-your-own-key** (BYOK) model. Approximate costs:
 - **Transcription:** ~$0.007/min (Deepgram)
 - **Translation:** ~$0.45–$0.56/hour (Claude, only when enabled)
 
+## Releases
+
+Releases are built automatically via GitHub Actions when a version tag is pushed:
+
+```bash
+git tag v0.1.0
+git push origin v0.1.0
+```
+
+A signed and notarized `.dmg` is uploaded to the [GitHub Releases](https://github.com/ddanninger/livetitles/releases) page.
+
 ## License
 
-MIT
+MIT — see [LICENSE](LICENSE) for details.

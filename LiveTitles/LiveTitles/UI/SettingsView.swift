@@ -31,19 +31,57 @@ struct SettingsView: View {
 // MARK: - General Settings
 
 struct GeneralSettingsView: View {
-    @AppStorage("speechLanguage") private var speechLanguage = "en"
+    @AppStorage("speechLanguage") private var speechLanguage = "multi"
     @AppStorage("translationLanguage") private var translationLanguage = ""
     @AppStorage("audioSource") private var audioSource = "microphone"
 
-    private let languages = [
+    private let speechLanguages = [
+        ("multi", "Multilingual (Auto-detect)"),
         ("en", "English"),
         ("de", "German"),
         ("es", "Spanish"),
         ("fr", "French"),
+        ("hi", "Hindi"),
+        ("it", "Italian"),
         ("ja", "Japanese"),
-        ("zh", "Chinese"),
         ("ko", "Korean"),
+        ("nl", "Dutch"),
+        ("pl", "Polish"),
         ("pt", "Portuguese"),
+        ("ru", "Russian"),
+        ("tr", "Turkish"),
+        ("uk", "Ukrainian"),
+        ("vi", "Vietnamese"),
+    ]
+
+    private let translationLanguages = [
+        ("en", "English"),
+        ("de", "German"),
+        ("es", "Spanish"),
+        ("fr", "French"),
+        ("hi", "Hindi"),
+        ("it", "Italian"),
+        ("ja", "Japanese"),
+        ("ko", "Korean"),
+        ("nl", "Dutch"),
+        ("pl", "Polish"),
+        ("pt", "Portuguese"),
+        ("ru", "Russian"),
+        ("tr", "Turkish"),
+        ("uk", "Ukrainian"),
+        ("vi", "Vietnamese"),
+    ]
+
+    @AppStorage("saveTranscript") private var saveTranscript = false
+    @AppStorage("saveAudioRecording") private var saveAudioRecording = false
+    @AppStorage("saveLocationPath") private var saveLocationPath = ""
+    @AppStorage("translationTone") private var translationTone = "casual"
+    @AppStorage("simultaneousTranslation") private var simultaneousTranslation = false
+
+    private let translationTones = [
+        ("casual", "Casual"),
+        ("professional", "Professional / Formal"),
+        ("academic", "Academic"),
     ]
 
     var body: some View {
@@ -55,23 +93,87 @@ struct GeneralSettingsView: View {
                 }
             }
 
+            Section("Recording") {
+                Toggle("Save transcript when recording stops", isOn: $saveTranscript)
+                Toggle("Save audio recording", isOn: $saveAudioRecording)
+
+                HStack {
+                    Text("Save Location")
+                    Spacer()
+                    Text(saveLocationDisplay)
+                        .foregroundColor(.secondary)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                    Button("Choose...") {
+                        chooseSaveLocation()
+                    }
+                }
+            }
+
             Section("Language") {
                 Picker("Speech Language", selection: $speechLanguage) {
-                    ForEach(languages, id: \.0) { code, name in
+                    ForEach(speechLanguages, id: \.0) { code, name in
                         Text(name).tag(code)
                     }
                 }
 
                 Picker("Translate To", selection: $translationLanguage) {
                     Text("Off").tag("")
-                    ForEach(languages, id: \.0) { code, name in
+                    ForEach(translationLanguages, id: \.0) { code, name in
                         Text(name).tag(code)
+                    }
+                }
+
+                if !translationLanguage.isEmpty {
+                    Picker("Tone", selection: $translationTone) {
+                        ForEach(translationTones, id: \.0) { value, label in
+                            Text(label).tag(value)
+                        }
+                    }
+
+                    if speechLanguage != "multi" {
+                        Toggle("Simultaneous translation", isOn: $simultaneousTranslation)
+                        Text("Understands both languages and translates each to the other automatically.")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
                     }
                 }
             }
         }
         .formStyle(.grouped)
         .padding()
+    }
+
+    private var saveLocationDisplay: String {
+        if saveLocationPath.isEmpty {
+            return "Documents"
+        }
+        return URL(fileURLWithPath: saveLocationPath).lastPathComponent
+    }
+
+    private func chooseSaveLocation() {
+        let panel = NSOpenPanel()
+        panel.canChooseFiles = false
+        panel.canChooseDirectories = true
+        panel.allowsMultipleSelection = false
+        panel.message = "Choose where to save transcripts and recordings"
+        panel.prompt = "Select Folder"
+
+        if !saveLocationPath.isEmpty {
+            panel.directoryURL = URL(fileURLWithPath: saveLocationPath)
+        }
+
+        if panel.runModal() == .OK, let url = panel.url {
+            // Store a security-scoped bookmark so we can access this folder later
+            if let bookmark = try? url.bookmarkData(
+                options: .withSecurityScope,
+                includingResourceValuesForKeys: nil,
+                relativeTo: nil
+            ) {
+                UserDefaults.standard.set(bookmark, forKey: "saveLocationBookmark")
+            }
+            saveLocationPath = url.path
+        }
     }
 }
 
