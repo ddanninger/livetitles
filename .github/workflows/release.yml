@@ -99,20 +99,20 @@ jobs:
             "$RUNNER_TEMP/export/LiveTitles.app" \
             "$RUNNER_TEMP/LiveTitles-notarize.zip"
 
-          SUBMIT_OUTPUT=$(xcrun notarytool submit \
+          xcrun notarytool submit \
             "$RUNNER_TEMP/LiveTitles-notarize.zip" \
             --apple-id "$APPLE_ID" \
             --password "$APPLE_ID_PASSWORD" \
             --team-id "$DEVELOPER_TEAM_ID" \
-            --wait 2>&1) || true
+            --wait \
+            --output-format json | tee $RUNNER_TEMP/notarize-result.json
 
-          echo "$SUBMIT_OUTPUT"
+          STATUS=$(python3 -c "import json; print(json.load(open('$RUNNER_TEMP/notarize-result.json'))['status'])")
+          ID=$(python3 -c "import json; print(json.load(open('$RUNNER_TEMP/notarize-result.json'))['id'])")
 
-          SUBMISSION_ID=$(echo "$SUBMIT_OUTPUT" | grep "id:" | head -1 | awk '{print $2}')
-
-          if echo "$SUBMIT_OUTPUT" | grep -q "status: Invalid"; then
-            echo "--- Notarization failed. Fetching log ---"
-            xcrun notarytool log "$SUBMISSION_ID" \
+          if [ "$STATUS" != "Accepted" ]; then
+            echo "--- Notarization failed ($STATUS). Fetching log ---"
+            xcrun notarytool log "$ID" \
               --apple-id "$APPLE_ID" \
               --password "$APPLE_ID_PASSWORD" \
               --team-id "$DEVELOPER_TEAM_ID"
