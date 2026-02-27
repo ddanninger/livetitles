@@ -1,0 +1,35 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1024" y2="1024" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#1e1e30"/>
+      <stop offset="50%" stop-color="#141422"/>
+      <stop offset="100%" stop-color="#0a0a12"/>
+    </linearGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="12" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+    <filter id="softglow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="30"/>
+    </filter>
+  </defs>
+
+  <!-- Background: macOS squircle -->
+  <rect width="1024" height="1024" rx="228" fill="url(#bg)"/>
+
+  <!-- Subtle ambient light behind bars -->
+  <rect x="260" y="420" width="504" height="200" rx="40" fill="white" opacity="0.03" filter="url(#softglow)"/>
+
+  <!-- Subtitle bars with glow -->
+  <g filter="url(#glow)">
+    <!-- Row 1: Full subtitle line (primary speaker text) -->
+    <rect x="272" y="448" width="480" height="34" rx="9" fill="white"/>
+
+    <!-- Row 2: Translation (indented, dimmer) -->
+    <rect x="324" y="498" width="356" height="28" rx="7" fill="white" opacity="0.50"/>
+
+    <!-- Row 3: Second speaker — label + text (two segments) -->
+    <rect x="272" y="546" width="112" height="34" rx="9" fill="white"/>
+    <rect x="402" y="546" width="350" height="34" rx="9" fill="white"/>
+  </g>
+</svg>

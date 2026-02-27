@@ -1,0 +1,66 @@
+name: LiveTitles
+options:
+  bundleIdPrefix: com.livetitles
+  deploymentTarget:
+    macOS: "14.0"
+  xcodeVersion: "15.0"
+  createIntermediateGroups: true
+  generateEmptyDirectories: true
+
+settings:
+  base:
+    SWIFT_VERSION: "5.9"
+    MACOSX_DEPLOYMENT_TARGET: "14.0"
+    PRODUCT_BUNDLE_IDENTIFIER: com.livetitles.app
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: 1
+    GENERATE_INFOPLIST_FILE: false
+
+targets:
+  LiveTitles:
+    type: application
+    platform: macOS
+    sources:
+      - path: LiveTitles
+        excludes:
+          - "**/.DS_Store"
+    settings:
+      base:
+        INFOPLIST_FILE: LiveTitles/Resources/Info.plist
+        CODE_SIGN_ENTITLEMENTS: LiveTitles/Resources/LiveTitles.entitlements
+        PRODUCT_NAME: LiveTitles
+        LD_RUNPATH_SEARCH_PATHS:
+          - "@executable_path/../Frameworks"
+    entitlements:
+      path: LiveTitles/Resources/LiveTitles.entitlements
+      properties:
+        com.apple.security.app-sandbox: false
+        com.apple.security.device.audio-input: true
+        com.apple.security.network.client: true
+
+  LiveTitlesTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - path: LiveTitlesTests
+      - path: LiveTitles
+        excludes:
+          - "App/LiveTitlesApp.swift"
+          - "**/.DS_Store"
+          - "Resources/**"
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: true
+
+schemes:
+  LiveTitles:
+    build:
+      targets:
+        LiveTitles: all
+        LiveTitlesTests: [test]
+    run:
+      config: Debug
+    test:
+      config: Debug
+      targets:
+        - LiveTitlesTests

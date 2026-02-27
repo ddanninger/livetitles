@@ -1,0 +1,40 @@
+# Xcode
+DerivedData/
+build/
+*.xcworkspace/xcuserdata/
+*.xcodeproj/xcuserdata/
+*.xcodeproj/project.xcworkspace/xcshareddata/IDEWorkspaceChecks.plist
+*.xcodeproj/project.xcworkspace/xcuserdata/
+xcuserdata/
+
+# Swift Package Manager
+.build/
+.swiftpm/
+Package.resolved
+
+# macOS
+.DS_Store
+._*
+.Spotlight-V100
+.Trashes
+
+# Secrets & Credentials
+.env
+.env.*
+*.key
+*.pem
+*.p12
+*.pfx
+apikeys.json
+secrets.json
+credentials.json
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Claude Code
+.claude/

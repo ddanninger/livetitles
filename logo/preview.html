@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LiveTitles Logo Preview</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@300;600&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', sans-serif;
+    background: #111;
+    color: #f0f0f0;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 60px 20px;
+    gap: 60px;
+  }
+
+  h1 {
+    font-size: 32px;
+    font-weight: 300;
+    letter-spacing: 0.04em;
+    color: #ccc;
+  }
+
+  .section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+  }
+
+  .section h2 {
+    font-size: 14px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: #666;
+  }
+
+  .app-icon {
+    width: 256px;
+    height: 256px;
+    border-radius: 56px;
+    overflow: hidden;
+    box-shadow:
+      0 8px 32px rgba(0,0,0,0.5),
+      0 2px 8px rgba(0,0,0,0.3);
+  }
+
+  .app-icon img {
+    width: 100%;
+    height: 100%;
+  }
+
+  .sizes {
+    display: flex;
+    gap: 40px;
+    align-items: flex-end;
+  }
+
+  .size-preview {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .size-preview span {
+    font-size: 11px;
+    color: #555;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .menubar-demo {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .menubar-strip {
+    background: linear-gradient(180deg, #3a3a3c 0%, #2c2c2e 100%);
+    border-radius: 8px;
+    padding: 6px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  }
+
+  .menubar-strip img {
+    width: 18px;
+    height: 18px;
+    filter: invert(1);
+    opacity: 0.85;
+  }
+
+  .menubar-strip .dot {
+    width: 4px;
+    height: 4px;
+    background: #666;
+    border-radius: 50%;
+  }
+
+  .menubar-strip-light {
+    background: linear-gradient(180deg, #f0f0f0 0%, #e0e0e0 100%);
+  }
+
+  .menubar-strip-light img {
+    filter: none;
+    opacity: 0.85;
+  }
+
+  .menubar-strip-light .dot {
+    background: #bbb;
+  }
+
+  .label {
+    font-size: 11px;
+    color: #555;
+  }
+</style>
+</head>
+<body>
+
+<h1>LiveTitles</h1>
+
+<!-- App Icon -->
+<div class="section">
+  <h2>App Icon</h2>
+  <div class="sizes">
+    <div class="size-preview">
+      <div class="app-icon" style="width:512px;height:512px;border-radius:114px;">
+        <img src="appicon.svg" alt="LiveTitles App Icon">
+      </div>
+      <span>512 &times; 512</span>
+    </div>
+    <div class="size-preview">
+      <div class="app-icon" style="width:256px;height:256px;border-radius:56px;">
+        <img src="appicon.svg" alt="LiveTitles App Icon">
+      </div>
+      <span>256 &times; 256</span>
+    </div>
+    <div class="size-preview">
+      <div class="app-icon" style="width:128px;height:128px;border-radius:28px;">
+        <img src="appicon.svg" alt="LiveTitles App Icon">
+      </div>
+      <span>128 &times; 128</span>
+    </div>
+    <div class="size-preview">
+      <div class="app-icon" style="width:64px;height:64px;border-radius:14px;">
+        <img src="appicon.svg" alt="LiveTitles App Icon">
+      </div>
+      <span>64 &times; 64</span>
+    </div>
+    <div class="size-preview">
+      <div class="app-icon" style="width:32px;height:32px;border-radius:7px;">
+        <img src="appicon.svg" alt="LiveTitles App Icon">
+      </div>
+      <span>32 &times; 32</span>
+    </div>
+  </div>
+</div>
+
+<!-- Menu Bar Icon -->
+<div class="section">
+  <h2>Menu Bar Icon</h2>
+  <div style="display:flex;flex-direction:column;gap:16px;align-items:center;">
+    <div class="menubar-demo">
+      <span class="label">Dark menu bar</span>
+      <div class="menubar-strip">
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <img src="menubar-icon.svg" alt="Menu bar icon">
+        <div class="dot"></div>
+        <div class="dot"></div>
+      </div>
+    </div>
+    <div class="menubar-demo">
+      <span class="label">Light menu bar</span>
+      <div class="menubar-strip menubar-strip-light">
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <img src="menubar-icon.svg" alt="Menu bar icon">
+        <div class="dot"></div>
+        <div class="dot"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

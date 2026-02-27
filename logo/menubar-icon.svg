@@ -1,0 +1,14 @@
+<svg width="22" height="22" viewBox="0 0 22 22" xmlns="http://www.w3.org/2000/svg">
+  <!-- macOS menu bar template icon — black on transparent -->
+  <!-- macOS will apply template rendering (light/dark automatically) -->
+
+  <!-- Row 1: Full subtitle line -->
+  <rect x="3" y="5.5" width="16" height="3" rx="1.5" fill="black"/>
+
+  <!-- Row 2: Translation line (shorter, indented) -->
+  <rect x="5.5" y="10.5" width="12" height="2.5" rx="1.25" fill="black" opacity="0.55"/>
+
+  <!-- Row 3: Speaker label + text (two segments) -->
+  <rect x="3" y="15" width="4.5" height="3" rx="1.5" fill="black"/>
+  <rect x="9" y="15" width="10" height="3" rx="1.5" fill="black"/>
+</svg>
