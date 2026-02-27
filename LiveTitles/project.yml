@@ -29,6 +29,7 @@ targets:
         INFOPLIST_FILE: LiveTitles/Resources/Info.plist
         CODE_SIGN_ENTITLEMENTS: LiveTitles/Resources/LiveTitles.entitlements
         PRODUCT_NAME: LiveTitles
+        ENABLE_HARDENED_RUNTIME: true
         LD_RUNPATH_SEARCH_PATHS:
           - "@executable_path/../Frameworks"
     entitlements:

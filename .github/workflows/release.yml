@@ -60,7 +60,8 @@ jobs:
             CODE_SIGN_IDENTITY="Developer ID Application" \
             DEVELOPMENT_TEAM="$DEVELOPER_TEAM_ID" \
             CODE_SIGN_STYLE=Manual \
-            OTHER_CODE_SIGN_FLAGS="--keychain $RUNNER_TEMP/build.keychain-db"
+            ENABLE_HARDENED_RUNTIME=YES \
+            OTHER_CODE_SIGN_FLAGS="--options=runtime --keychain $RUNNER_TEMP/build.keychain-db"
 
       - name: Export archive
         env:
@@ -98,12 +99,25 @@ jobs:
             "$RUNNER_TEMP/export/LiveTitles.app" \
             "$RUNNER_TEMP/LiveTitles-notarize.zip"
 
-          xcrun notarytool submit \
+          SUBMIT_OUTPUT=$(xcrun notarytool submit \
             "$RUNNER_TEMP/LiveTitles-notarize.zip" \
             --apple-id "$APPLE_ID" \
             --password "$APPLE_ID_PASSWORD" \
             --team-id "$DEVELOPER_TEAM_ID" \
-            --wait
+            --wait 2>&1) || true
+
+          echo "$SUBMIT_OUTPUT"
+
+          SUBMISSION_ID=$(echo "$SUBMIT_OUTPUT" | grep "id:" | head -1 | awk '{print $2}')
+
+          if echo "$SUBMIT_OUTPUT" | grep -q "status: Invalid"; then
+            echo "--- Notarization failed. Fetching log ---"
+            xcrun notarytool log "$SUBMISSION_ID" \
+              --apple-id "$APPLE_ID" \
+              --password "$APPLE_ID_PASSWORD" \
+              --team-id "$DEVELOPER_TEAM_ID"
+            exit 1
+          fi
 
           xcrun stapler staple "$RUNNER_TEMP/export/LiveTitles.app"
 
