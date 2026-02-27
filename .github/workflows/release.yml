@@ -67,59 +67,23 @@ jobs:
         env:
           DEVELOPER_TEAM_ID: ${{ secrets.DEVELOPER_TEAM_ID }}
         run: |
-          cat > $RUNNER_TEMP/ExportOptions.plist <<EOF
+          cat > $RUNNER_TEMP/ExportOptions.plist <<'PLIST'
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
           <plist version="1.0">
           <dict>
             <key>method</key>
             <string>developer-id</string>
-            <key>teamID</key>
-            <string>${DEVELOPER_TEAM_ID}</string>
             <key>signingStyle</key>
-            <string>manual</string>
-            <key>signingCertificate</key>
-            <string>Developer ID Application</string>
+            <string>automatic</string>
           </dict>
           </plist>
-          EOF
+          PLIST
 
           xcodebuild -exportArchive \
             -archivePath $RUNNER_TEMP/LiveTitles.xcarchive \
             -exportOptionsPlist $RUNNER_TEMP/ExportOptions.plist \
             -exportPath $RUNNER_TEMP/export
-
-      - name: Notarize app
-        env:
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_ID_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
-          DEVELOPER_TEAM_ID: ${{ secrets.DEVELOPER_TEAM_ID }}
-        run: |
-          ditto -c -k --keepParent \
-            "$RUNNER_TEMP/export/LiveTitles.app" \
-            "$RUNNER_TEMP/LiveTitles-notarize.zip"
-
-          xcrun notarytool submit \
-            "$RUNNER_TEMP/LiveTitles-notarize.zip" \
-            --apple-id "$APPLE_ID" \
-            --password "$APPLE_ID_PASSWORD" \
-            --team-id "$DEVELOPER_TEAM_ID" \
-            --wait \
-            --output-format json | tee $RUNNER_TEMP/notarize-result.json
-
-          STATUS=$(python3 -c "import json; print(json.load(open('$RUNNER_TEMP/notarize-result.json'))['status'])")
-          ID=$(python3 -c "import json; print(json.load(open('$RUNNER_TEMP/notarize-result.json'))['id'])")
-
-          if [ "$STATUS" != "Accepted" ]; then
-            echo "--- Notarization failed ($STATUS). Fetching log ---"
-            xcrun notarytool log "$ID" \
-              --apple-id "$APPLE_ID" \
-              --password "$APPLE_ID_PASSWORD" \
-              --team-id "$DEVELOPER_TEAM_ID"
-            exit 1
-          fi
-
-          xcrun stapler staple "$RUNNER_TEMP/export/LiveTitles.app"
 
       - name: Create DMG
         run: |
@@ -129,6 +93,23 @@ jobs:
             -srcfolder "$RUNNER_TEMP/export/LiveTitles.app" \
             -ov -format UDZO \
             "$RUNNER_TEMP/LiveTitles-${TAG}.dmg"
+
+      - name: Notarize DMG
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_ID_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
+          DEVELOPER_TEAM_ID: ${{ secrets.DEVELOPER_TEAM_ID }}
+        run: |
+          TAG=${GITHUB_REF_NAME}
+
+          xcrun notarytool submit \
+            "$RUNNER_TEMP/LiveTitles-${TAG}.dmg" \
+            --apple-id "$APPLE_ID" \
+            --password "$APPLE_ID_PASSWORD" \
+            --team-id "$DEVELOPER_TEAM_ID" \
+            --wait
+
+          xcrun stapler staple "$RUNNER_TEMP/LiveTitles-${TAG}.dmg"
 
       - name: Upload DMG to GitHub Release
         env:
