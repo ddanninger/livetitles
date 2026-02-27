@@ -9,7 +9,7 @@ A native macOS menu bar app that displays real-time, movie-style subtitles for a
 ## Features
 
 - **Live Speech-to-Text** — Real-time transcription powered by Deepgram Nova-3 with sub-300ms latency
-- **Live Translation** — Translate conversations in real-time into 15+ languages using Claude 3.5 Sonnet
+- **Live Translation** — Translate conversations in real-time into 15+ languages using Claude Sonnet
 - **Translation Tone** — Choose casual, professional, or academic tone for proper honorifics (Korean, Japanese, etc.)
 - **Floating Subtitle Overlay** — Cinema-style subtitles that float above all windows, click-through and always visible
 - **Menu Bar Only** — No dock icon, no app window — just floating subtitles and menu bar controls
@@ -82,7 +82,7 @@ The app will request:
 | Language | Swift 5.9 |
 | UI | SwiftUI + AppKit (NSPanel) |
 | Speech-to-Text | Deepgram Nova-3 (WebSocket) |
-| Translation | Anthropic Claude 3.5 Sonnet |
+| Translation | Anthropic Claude Sonnet 4.6 |
 | Audio Capture | AVAudioEngine + ScreenCaptureKit |
 | API Key Storage | macOS Keychain |
 | Dependencies | None (all native Apple frameworks) |
