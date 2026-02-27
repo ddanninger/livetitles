@@ -9,11 +9,8 @@ A native macOS menu bar app that displays real-time, movie-style subtitles for a
 ## Features
 
 - **Live Speech-to-Text** — Real-time transcription powered by Deepgram Nova-3 with sub-300ms latency
-- **Multi-Speaker Detection** — Each speaker gets a unique color label with automatic diarization
 - **Live Translation** — Translate conversations in real-time into 15+ languages using Claude 3.5 Sonnet
-- **Simultaneous Translation** — Bidirectional mode: speak in either language and get translations to the other automatically
 - **Translation Tone** — Choose casual, professional, or academic tone for proper honorifics (Korean, Japanese, etc.)
-- **Multilingual Auto-Detect** — Let Deepgram detect the spoken language automatically
 - **Floating Subtitle Overlay** — Cinema-style subtitles that float above all windows, click-through and always visible
 - **Menu Bar Only** — No dock icon, no app window — just floating subtitles and menu bar controls
 - **Save Transcripts** — Export conversations as Markdown files with speaker labels and translations
@@ -25,11 +22,9 @@ A native macOS menu bar app that displays real-time, movie-style subtitles for a
 ```
 Microphone / System Audio
         ↓
-  Deepgram Nova-3 (WebSocket) → Real-time transcription + speaker labels + language detection
+  Deepgram Nova-3 (WebSocket) → Real-time transcription
         ↓
-  Speaker Manager → Color assignment + name extraction
-        ↓
-  Claude Translation (optional) → Bidirectional translated text with tone/honorific control
+  Claude Translation (optional) → Translated text with tone/honorific control
         ↓
   Floating Overlay → Cinema-style subtitles on screen
         ↓
@@ -67,9 +62,8 @@ On first launch, enter your API keys via the menu bar → **Settings**.
 
 In **Settings → General**:
 
-- **Speech Language** — Pick a specific language or "Multilingual (Auto-detect)"
+- **Speech Language** — Pick the language being spoken
 - **Translate To** — Choose a target language (or "Off")
-- **Simultaneous Translation** — Enable to translate both directions (e.g. English ↔ Korean)
 - **Tone** — Casual, Professional, or Academic (controls honorifics in Korean, Japanese, etc.)
 - **Save Transcript** — Auto-save a Markdown file when recording stops
 - **Save Audio Recording** — Save the full audio as a `.caf` file

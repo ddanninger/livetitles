@@ -426,6 +426,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = LiveTitles/Resources/LiveTitles.entitlements;
 				COMBINE_HIDPI_IMAGES = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
 				INFOPLIST_FILE = LiveTitles/Resources/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"@executable_path/../Frameworks",
@@ -584,6 +585,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = LiveTitles/Resources/LiveTitles.entitlements;
 				COMBINE_HIDPI_IMAGES = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
 				INFOPLIST_FILE = LiveTitles/Resources/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"@executable_path/../Frameworks",

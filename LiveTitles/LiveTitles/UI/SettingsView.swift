@@ -31,12 +31,11 @@ struct SettingsView: View {
 // MARK: - General Settings
 
 struct GeneralSettingsView: View {
-    @AppStorage("speechLanguage") private var speechLanguage = "multi"
+    @AppStorage("speechLanguage") private var speechLanguage = "en"
     @AppStorage("translationLanguage") private var translationLanguage = ""
     @AppStorage("audioSource") private var audioSource = "microphone"
 
     private let speechLanguages = [
-        ("multi", "Multilingual (Auto-detect)"),
         ("en", "English"),
         ("de", "German"),
         ("es", "Spanish"),
@@ -76,7 +75,6 @@ struct GeneralSettingsView: View {
     @AppStorage("saveAudioRecording") private var saveAudioRecording = false
     @AppStorage("saveLocationPath") private var saveLocationPath = ""
     @AppStorage("translationTone") private var translationTone = "casual"
-    @AppStorage("simultaneousTranslation") private var simultaneousTranslation = false
 
     private let translationTones = [
         ("casual", "Casual"),
@@ -131,12 +129,6 @@ struct GeneralSettingsView: View {
                         }
                     }
 
-                    if speechLanguage != "multi" {
-                        Toggle("Simultaneous translation", isOn: $simultaneousTranslation)
-                        Text("Understands both languages and translates each to the other automatically.")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
                 }
             }
         }

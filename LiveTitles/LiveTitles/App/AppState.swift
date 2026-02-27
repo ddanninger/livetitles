@@ -62,7 +62,7 @@ final class AppState: ObservableObject {
 
         let anthropicKey = SettingsManager.shared.anthropicAPIKey
 
-        let speechLang = UserDefaults.standard.string(forKey: "speechLanguage") ?? "multi"
+        let speechLang = UserDefaults.standard.string(forKey: "speechLanguage") ?? "en"
         let translationLang = UserDefaults.standard.string(forKey: "translationLanguage") ?? ""
 
         let tone = UserDefaults.standard.string(forKey: "translationTone") ?? "casual"
@@ -93,15 +93,7 @@ final class AppState: ObservableObject {
             audioRecordingURL = dir.appendingPathComponent(filename)
         }
 
-        // Use multilingual mode when simultaneous translation is enabled
-        let simultaneousTranslation = UserDefaults.standard.bool(forKey: "simultaneousTranslation")
-        let deepgramLang: String
-        if simultaneousTranslation && speechLang != "multi" && !translationLang.isEmpty {
-            deepgramLang = "multi"
-        } else {
-            deepgramLang = speechLang
-        }
-        let provider = DeepgramProvider(apiKey: deepgramKey, language: deepgramLang)
+        let provider = DeepgramProvider(apiKey: deepgramKey, language: speechLang)
         transcriptionSession = TranscriptionSession(
             provider: provider,
             appState: self
@@ -150,20 +142,18 @@ final class AppState: ObservableObject {
     // MARK: - Subtitle Updates
 
     func updateSubtitles(with result: TranscriptionResult) {
-        let lines = result.words
-            .grouped(by: \.speakerIndex)
-            .map { speakerIndex, words in
-                let speaker = SpeakerManager.shared.speaker(for: speakerIndex)
-                let text = words.map(\.text).joined(separator: " ")
-                return SubtitleLine(
-                    id: UUID(),
-                    speaker: speaker,
-                    text: text,
-                    translation: nil,
-                    timestamp: words.first?.startTime ?? 0,
-                    isFinal: result.isFinal
-                )
-            }
+        let text = result.words.map(\.text).joined(separator: " ")
+        let speaker = SpeakerManager.shared.speaker(for: 0)
+        let lines = [
+            SubtitleLine(
+                id: UUID(),
+                speaker: speaker,
+                text: text,
+                translation: nil,
+                timestamp: result.words.first?.startTime ?? 0,
+                isFinal: result.isFinal
+            )
+        ]
 
         let maxBubbles = max(2, UserDefaults.standard.integer(forKey: "subtitleVisibleBubbles"))
         let keepCount = maxBubbles > 0 ? maxBubbles : 3
@@ -180,8 +170,7 @@ final class AppState: ObservableObject {
                 for line in lines {
                     translationManager.translate(
                         lineID: line.id,
-                        text: line.text,
-                        detectedLanguage: result.detectedLanguage
+                        text: line.text
                     )
                 }
             }

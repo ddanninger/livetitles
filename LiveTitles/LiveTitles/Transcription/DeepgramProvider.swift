@@ -26,7 +26,6 @@ final class DeepgramProvider: TranscriptionProvider {
             "wss://api.deepgram.com/v1/listen?",
             "model=nova-3",
             "&language=\(language)",
-            "&diarize=true",
             "&interim_results=true",
             "&punctuate=true",
             "&smart_format=true",
@@ -119,21 +118,8 @@ final class DeepgramProvider: TranscriptionProvider {
 
         let isFinal = json["is_final"] as? Bool ?? false
         let channelIndex = (json["channel_index"] as? [Int])?.first ?? 0
-
-        // Language detection: multi mode uses "languages" array, single mode uses "detected_language"
-        let detectedLanguage: String?
-        if let languages = firstAlt["languages"] as? [String], let first = languages.first {
-            detectedLanguage = first
-        } else if let languages = channel["languages"] as? [String], let first = languages.first {
-            detectedLanguage = first
-        } else {
-            detectedLanguage = channel["detected_language"] as? String
-                ?? firstAlt["detected_language"] as? String
-        }
-
-        if isFinal, let lang = detectedLanguage {
-            print("[LiveTitles] Detected language: \(lang)")
-        }
+        let detectedLanguage = channel["detected_language"] as? String
+            ?? firstAlt["detected_language"] as? String
 
         let words = wordsArray.compactMap { wordDict -> TranscribedWord? in
             guard let word = wordDict["word"] as? String,

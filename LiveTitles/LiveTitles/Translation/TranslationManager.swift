@@ -29,48 +29,18 @@ final class TranslationManager {
         self.provider = ClaudeTranslationProvider(apiKey: apiKey)
     }
 
-    /// Translate a specific subtitle line's text.
-    /// When detectedLanguage is provided, translates bidirectionally:
-    /// if detected matches source → translate to target; if detected matches target → translate to source.
-    func translate(lineID: UUID, text: String, detectedLanguage: String? = nil) {
+    /// Translate a specific subtitle line's text
+    func translate(lineID: UUID, text: String) {
         guard isConfigured, !text.isEmpty else { return }
-
-        // Determine translation direction
-        let (from, to) = resolveDirection(detectedLanguage: detectedLanguage)
-
-        // Don't translate if detected language matches the target (already in the right language)
-        // This shouldn't happen with proper direction resolution, but guard anyway
-        guard from != to else { return }
 
         // Cancel any existing task for this line (e.g. if text was updated)
         activeTasks[lineID]?.cancel()
 
         activeTasks[lineID] = Task { [weak self] in
             guard let self else { return }
-            await self.performTranslation(lineID: lineID, text: text, from: from, to: to)
+            await self.performTranslation(lineID: lineID, text: text, from: sourceLanguage, to: targetLanguage)
             self.activeTasks.removeValue(forKey: lineID)
         }
-    }
-
-    /// Resolves which direction to translate based on detected language.
-    private func resolveDirection(detectedLanguage: String?) -> (from: String, to: String) {
-        guard let detected = detectedLanguage else {
-            print("[LiveTitles] No detected language, using default: \(sourceLanguage) → \(targetLanguage)")
-            return (sourceLanguage, targetLanguage)
-        }
-
-        // Normalize: "en-US" → "en"
-        let detectedBase = String(detected.prefix(2))
-        let targetBase = String(targetLanguage.prefix(2))
-
-        if detectedBase == targetBase {
-            // Speaking the translation language → translate back to source
-            print("[LiveTitles] Detected \(detected) matches target (\(targetLanguage)), flipping: \(targetLanguage) → \(sourceLanguage)")
-            return (targetLanguage, sourceLanguage)
-        }
-        // Default: speaking source language → translate to target
-        print("[LiveTitles] Detected \(detected), translating: \(sourceLanguage) → \(targetLanguage)")
-        return (sourceLanguage, targetLanguage)
     }
 
     func stop() {
