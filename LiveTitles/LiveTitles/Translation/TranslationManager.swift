@@ -55,19 +55,21 @@ final class TranslationManager {
     /// Resolves which direction to translate based on detected language.
     private func resolveDirection(detectedLanguage: String?) -> (from: String, to: String) {
         guard let detected = detectedLanguage else {
+            print("[LiveTitles] No detected language, using default: \(sourceLanguage) → \(targetLanguage)")
             return (sourceLanguage, targetLanguage)
         }
 
         // Normalize: "en-US" → "en"
         let detectedBase = String(detected.prefix(2))
-        let sourceBase = String(sourceLanguage.prefix(2))
         let targetBase = String(targetLanguage.prefix(2))
 
         if detectedBase == targetBase {
             // Speaking the translation language → translate back to source
+            print("[LiveTitles] Detected \(detected) matches target (\(targetLanguage)), flipping: \(targetLanguage) → \(sourceLanguage)")
             return (targetLanguage, sourceLanguage)
         }
         // Default: speaking source language → translate to target
+        print("[LiveTitles] Detected \(detected), translating: \(sourceLanguage) → \(targetLanguage)")
         return (sourceLanguage, targetLanguage)
     }
 

@@ -22,18 +22,24 @@ final class DeepgramProvider: TranscriptionProvider {
     func connect() async throws {
         onConnectionStateChange?(.connecting)
 
-        let urlString = [
-            "wss://api.deepgram.com/v1/listen?",
+        var params = [
             "model=nova-3",
-            "&language=\(language)",
-            "&diarize=true",
-            "&interim_results=true",
-            "&punctuate=true",
-            "&smart_format=true",
-            "&encoding=linear16",
-            "&sample_rate=16000",
-            "&channels=1",
-        ].joined()
+            "language=\(language)",
+            "diarize=true",
+            "interim_results=true",
+            "punctuate=true",
+            "smart_format=true",
+            "encoding=linear16",
+            "sample_rate=16000",
+            "channels=1",
+        ]
+        if language == "multi" {
+            // Deepgram recommends 100ms endpointing for code-switching
+            params.append("endpointing=100")
+        } else {
+            params.append("detect_language=true")
+        }
+        let urlString = "wss://api.deepgram.com/v1/listen?" + params.joined(separator: "&")
 
         guard let url = URL(string: urlString) else {
             throw DeepgramError.invalidURL
@@ -119,8 +125,21 @@ final class DeepgramProvider: TranscriptionProvider {
 
         let isFinal = json["is_final"] as? Bool ?? false
         let channelIndex = (json["channel_index"] as? [Int])?.first ?? 0
-        let detectedLanguage = firstAlt["detected_language"] as? String
-            ?? channel["detected_language"] as? String
+
+        // Language detection: multi mode uses "languages" array, single mode uses "detected_language"
+        let detectedLanguage: String?
+        if let languages = firstAlt["languages"] as? [String], let first = languages.first {
+            detectedLanguage = first
+        } else if let languages = channel["languages"] as? [String], let first = languages.first {
+            detectedLanguage = first
+        } else {
+            detectedLanguage = channel["detected_language"] as? String
+                ?? firstAlt["detected_language"] as? String
+        }
+
+        if isFinal, let lang = detectedLanguage {
+            print("[LiveTitles] Detected language: \(lang)")
+        }
 
         let words = wordsArray.compactMap { wordDict -> TranscribedWord? in
             guard let word = wordDict["word"] as? String,
